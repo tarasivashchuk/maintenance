@@ -1,5 +1,5 @@
 """Common common_code."""
-
+from logging import Logger
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -9,33 +9,42 @@ import logzero
 from alive_progress import alive_bar
 
 
-def clean(location: Path, patterns: List[str], logger: Optional[logzero.logger] = None):
+def clean(location: Path, patterns: List[str], logger: Optional[Logger] = None):
     """Clean the target location of all patterns."""
-    dirs_progress = alive_bar(title="Directories")
-    files_progress = alive_bar(title="Files")
-    for pattern in patterns:
-        for match in location.rglob(pattern):
-            try:
-                match_type = clean_match(match)
-                dirs_progress.send(1) if match_type == "dir" else files_progress.send(1)
-                if logger is not None:
-                    logger.info(f"Successfully cleaned: {match}")
-            except Exception as e:
-                if logger is not None:
-                    logger.error(f"For {match}: {e}")
-                raise e
-    dirs_progress.close()
-    files_progress.close()
+    with alive_bar(title="Cleaning...") as progress:
+        for pattern in patterns:
+            for match in location.rglob(pattern):
+                try:
+                    clean_match(progress, match)
+                    if logger is not None:
+                        logger.info(f"Successfully cleaned: {match}")
+                except Exception as e:
+                    if logger is not None:
+                        logger.error(f"For {match}: {e}")
+                    raise e
     return True
 
 
-def clean_match(match):
+def clean_match(progress, match):
     if match.is_dir():
-        match.rmdir(match)
-        return "dir"
+        return clean_dir(progress, match)
     else:
-        match.rm()
-        return "file"
+        return clean_file(progress, match)
+
+
+def clean_dir(progress, path):
+    for match in path.glob("*"):
+        if match.is_dir():
+            clean_dir(progress, match)
+        else:
+            clean_file(progress, match)
+    path.rmdir()
+    return progress()
+
+
+def clean_file(progress, file):
+    file.unlink()
+    return progress()
 
 
 def parse_args():
@@ -61,9 +70,9 @@ def parse_args():
     )
     parser.add_argument(
         "--log",
-        type=bool,
         required=False,
         default=False,
+        action="store_true",
         help="Whether to log the cleaned files and directories",
     )
     parser.add_argument(

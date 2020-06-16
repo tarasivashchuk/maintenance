@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "common-code"
-version = "2020.6.12"
+name = "maintenance"
+version = "2020.6.13"
 description = "Common tasks and coding practice"
 authors = ["tarasivashchuk <taras@tarasivashchuk.com>"]
 
