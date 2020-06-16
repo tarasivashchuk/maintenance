@@ -8,7 +8,7 @@ authors = ["tarasivashchuk <taras@tarasivashchuk.com>"]
 python = "^3.8"
 python-dotenv = "*"
 logzero = "*"
-tqdm = "*"
+alive-progress = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
