@@ -1,48 +1,32 @@
 [tool.poetry]
 name = "pyclean"
 version = "1.0.0"
-description = "Cleaning up of Python projects"
+description = "Automatically clean up files and directories recursively using glob patterns with a nice progress bar"
 authors = ["tarasivashchuk <taras@tarasivashchuk.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.6"
 alive-progress = "*"
-click = "*"
-logzero = "*"
+
+[tool.poetry.dev-dependencies]
+pytest = "*"
+black = "*"
+isort = "*"
+flake8 = "*"
 
 [tool.black]
 inplace = true
 line-length = 100
 target-version = ["py38"]
 verbose = true
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | \references
-  | _build
-  | buck-out
-  | build
-  | dist
-  | tests/.*/setup.py
-)/
-'''
+
 [tool.isort]
 balanced_wrapping = true
 combine_as_imports = true
-known_first_party = ["PACKAGE_NAME"]
 line_length = 100
 lines_after_imports = 2
 profile = "black"
 use_parentheses = true
-virtual_env = "VENV_PATH"
-skip_glob = ["*/setup.py"]
-filter_files = true
 
 [build-system]
 requires = ["poetry>=0.12"]
