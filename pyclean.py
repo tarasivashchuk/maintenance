@@ -7,23 +7,8 @@ from itertools import chain
 from pathlib import Path
 from shutil import rmtree
 
+import click
 from alive_progress import alive_bar
-
-
-class ItemType(Enum):
-    """Item types which are cleaned and associated defaults."""
-
-    DIRECTORY = {
-        "logger_string": "directories",
-        "patterns": [
-            "__pycache__",
-            ".pytest_cache",
-            ".mypy_cache",
-            ".ipynb_checkpoints",
-            "docs/_build",
-        ],
-    }
-    FILE = {"logger_string": "files", "patterns": ["Thumbs.db", "DS_Store", ".dccache", "*.log"]}
 
 
 def search(location: Path, patterns: list[str]) -> list[Path]:
@@ -36,52 +21,53 @@ def search(location: Path, patterns: list[str]) -> list[Path]:
             progress_bar()
         return matches
 
-    with alive_bar(title="Searching...") as progress_bar:
+    with alive_bar() as progress_bar:
         match_lists = [match_pattern(pattern) for pattern in patterns]
     return list(set(chain.from_iterable(match_lists)))
 
 
-def delete(path: Path, item_type: ItemType) -> None:
+def empty_directory(directory_path: Path) -> None:
+    for item in directory_path.glob("*"):
+        if not item.is_file():
+            empty_directory(item)
+        item.unlink()
+
+def delete(path: Path) -> None:
     """Deletes the item at the given path."""
     try:
-        if item_type == ItemType.DIRECTORY:
-            rmtree(str(path))
-        elif item_type == ItemType.FILE:
-            path.unlink(missing_ok=True)
-    except PermissionError as e:
-        print(f"{e} @ {path}, skipping...")
-    except WinError as e:
-        print(f"{e} @ {path}, skipping...")
+        if path.is_dir():
+            empty_directory(path)
+        path.unlink()
+    except PermissionError:
+        click.echo(f"You do not have permissions to delete {path}, skipping...")
 
-
-def clean(location: Path, item_type: ItemType) -> None:
+def clean(location: Path) -> None:
     """Searches for and then deletes all matches of the given item type at the given location."""
-    matches = search(location, item_type.value)
-    with alive_bar(len(matches), title="Deleting...") as progress_bar:
+    matches = search(location,)
+    with alive_bar(len(matches), title="PyCleaning") as progress_bar:
         for match in matches:
-            delete(match, item_type)
+            delete(match)
             progress_bar()
 
 
 def main(location: str) -> None:
     """Runs the clean function for directories and files."""
     location = Path.cwd() if not location else Path(location).resolve()
-    print("\nCLEANING DIRECTORIES")
-    print("--------------------")
-    clean(location, ItemType.DIRECTORY)
-    print("\nCLEANING FILES")
-    print("---------------")
-    clean(location, ItemType.FILE)
+    clean(location)
 
 
 def parse_root_arg():
     """Returns the location root command line argument."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=str, required=False, default=None)
+    parser.add_argument("--patterns", nargs="*", type=str, required=True, default=["__pycache__", ".pytest_cache", ".mypy_cache"], help="Glob patterns to recursively search for and delete - can match both files and directories")
     args = parser.parse_args()
     return args.root
 
 
-if __name__ == "__main__":
-    root = parse_root_arg()
+def run():
+    root = parse_root_arg()    
     main(root)
+
+if __name__ == "__main__":
+    run()
